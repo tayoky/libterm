@@ -40,7 +40,9 @@ void term_set_cursor(term_t *term, int x, int y) {
 	term_clamp_cursor(term);
 	
 	// now redraw the cursor
-	term_draw_cursor(term, term->cursor.x, term->cursor.y);
+	if (term->dec_mode & TERM_DEC_CURSOR) {
+		term_draw_cursor(term, term->cursor.x, term->cursor.y);
+	}
 }
 
 void term_move_cursor(term_t *term, int x, int y) {
@@ -82,6 +84,7 @@ void term_reset(term_t *term) {
 	term->cursor.bg_color.type = TERM_COLOR_DEFAULT;
 	term->saved_cursor = term->cursor;
 	term->dumb_saved_cursor = term->cursor;
+	term->dec_mode = TERM_DEC_AUTOWRAP | TERM_DEC_CURSOR;
 	term_rect_t clear_rect = {
 		.x = 0,
 		.y = 0,

@@ -63,6 +63,7 @@ typedef struct term {
 	term_cursor_t cursor;
 	term_cursor_t saved_cursor;
 	term_cursor_t dumb_saved_cursor;
+	uint32_t dec_mode;
 } term_t;
 
 #define TERM_STATE_GROUND           0
@@ -77,6 +78,10 @@ typedef struct term {
 #define TERM_ATTR_UNDERLINE  (1 << 4)
 #define TERM_ATTR_BLINK      (1 << 5)
 #define TERM_ATTR_INVERSE    (1 << 7)
+
+#define TERM_DEC_AUTOWRAP  (1 << 0)
+#define TERM_DEC_CURSOR    (1 << 1)
+#define TERM_DEC_ALTBUFFER (1 << 2)
 
 #define CELL_AT(term, x, y) (&term->screen[(y) * term->width + (x)])
 

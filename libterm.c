@@ -99,7 +99,7 @@ void term_output_char(term_t *term, wint_t c) {
 
 	switch (term->state) {
 	case TERM_STATE_GROUND:
-		if (term->cursor.wrap_pending) {
+		if (term->cursor.wrap_pending && (term->dec_mode & TERM_DEC_AUTOWRAP)) {
 			term_newline(term);
 		}
 		cell_t *cell = CELL_AT(term, term->cursor.x, term->cursor.y);

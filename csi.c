@@ -7,7 +7,37 @@
 #define GET_PARAM(index, val) term->params[index] <= 0 ? val : term->params[index]
 
 static void handle_dec(term_t *term, wint_t final) {
+	int mode = 0;
+	switch (term->params[0]) {
+	case 7:
+		mode = TERM_DEC_AUTOWRAP;
+		break;
+	case 25:
+		mode = TERM_DEC_CURSOR;
+		break;
+	case 47:
+	case 1047:
+		mode = TERM_DEC_ALTBUFFER;
+		break;
+	default:
+		return;
+	}
+	switch (final) {
+	case 'h': // DECSET : set dec mode
+		term->dec_mode |= mode;
+		break;
+	case 's': // DECRST : reset dec mode
+		term->dec_mode &= ~mode;
+		break;
+	}
 
+	// mode specific stuff
+	switch (mode) {
+	case TERM_DEC_CURSOR:
+		// force cursor redraw
+		term_move_cursor(term, 0, 0);
+		break;
+	}
 }
 
 static void handle_cursor_move(term_t *term, wint_t final) {
