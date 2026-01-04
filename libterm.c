@@ -13,6 +13,10 @@ static void handle_esc(term_t *term, wint_t c) {
 		term->intermediate = 0;
 		term->params[0] = -1;
 		break;
+	default:
+		term_esc_dispatch(term, c);
+		term->state = TERM_STATE_GROUND;
+		break;
 	}
 }
 

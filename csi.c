@@ -1,6 +1,8 @@
 #include <libterm.h>
 #include <term-utils.h>
 
+// csi codes handling
+
 #define GET_PARAM(index, val) term->params[index] <= 0 ? val : term->params[index]
 
 static void handle_dec(term_t *term, wint_t final) {
