@@ -1,0 +1,72 @@
+#ifndef LIBTERM_H
+#define LIBTERM_H
+
+#include <wchar.h>
+#include <stdint.h>
+
+struct term;
+
+typedef struct term_color {
+	uint8_t type;
+	union {
+		uint8_t r;
+		uint8_t index;
+	};
+	uint8_t g;
+	uint8_t b;
+} term_color_t;
+
+#define TERM_COLOR_DEFAULT 0
+#define TERM_COLOR_ANSI    1
+#define TERM_COLOR_RGB     2
+
+typedef struct cell {
+	wint_t c;
+	term_color_t fg_color;
+	term_color_t bg_color;
+	int attr;
+} cell_t;
+
+typedef struct term_ops {
+	int (*draw_cell)(struct term *, struct cell *cell, int x, int y);
+	int (*draw_cursor)(struct term *, int x, int y);
+	int (*clear)(struct term *, int x, int y, int width, int height);
+} term_ops_t;
+
+typedef struct term {
+	void *data;
+	term_ops_t *ops;
+	cell_t *screen;
+	int params[16];
+	int params_count;
+	int state;
+	char intermediate;
+	int width;
+	int height;
+	int cursor_x;
+	int cursor_y;
+	int wrap_pending;
+	int attr;
+	term_color_t fg_color;
+	term_color_t bg_color;
+} term_t;
+
+#define TERM_STATE_GROUND           0
+#define TERM_STATE_ESCAPE           1
+#define TERM_STATE_CSI_ENTRY        2
+#define TERM_STATE_CSI_PARAM        3
+#define TERM_STATE_CSI_INTERMEDIATE 4
+#define TERM_STATE_CSI_IGNORE       5
+
+#define TERM_ATTR_BOLD       (1 << 1)
+#define TERM_ATTR_ITALIC     (1 << 3)
+#define TERM_ATTR_UNDERLINE  (1 << 4)
+#define TERM_ATTR_BLINK      (1 << 5)
+#define TERM_ATTR_INVERSE    (1 << 7)
+
+void term_output_char(term_t *term, wint_t c);
+void term_output(term_t *term, const char *buf, size_t size);
+int term_init(term_t *term);
+void term_cleanup(term_t *term);
+
+#endif
