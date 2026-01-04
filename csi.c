@@ -44,6 +44,53 @@ static void handle_cursor_move(term_t *term, wint_t final) {
 	}
 }
 
+static void handle_erase_line(term_t *term, int param) {
+	term_rect_t clear_rect = {
+		.y = term->cursor_y,
+		.height = 1,
+	};
+	switch (param) {
+	case 0: // from cursor to end of line
+		clear_rect.x     = term->cursor_x;
+		clear_rect.width = term->width - term->cursor_x;
+		break;
+	case 1: // start of line to cursor
+		clear_rect.x     = 0;
+		clear_rect.width = term->cursor_x + 1;
+		break;
+	case 2: // whole line
+		clear_rect.x     = 0;
+		clear_rect.width = term->width;
+		break;
+	}
+	term_clear(term, &clear_rect);
+}
+
+static void handle_erase_screen(term_t *term, int param) {
+	term_rect_t clear_rect = {
+		.x = 0,
+		.width = term->width,
+	};
+	switch (param) {
+	case 0:
+		clear_rect.y      = term->cursor_y + 1;
+		clear_rect.height = term->height - term->cursor_y - 1;
+		handle_erase_line(term, 0);
+		break;
+	case 1:
+		clear_rect.y      = 0;
+		clear_rect.height = term->cursor_y;
+		handle_erase_line(term, 1);
+		break;
+	case 2:
+	case 3:
+		clear_rect.y      = 0;
+		clear_rect.height = term->height;
+		break;
+	}
+	term_clear(term, &clear_rect);
+}
+
 static int handle_long_color(int *params, term_color_t *color) {
 	switch (params[0]) {
 	case 2:
@@ -123,8 +170,7 @@ static void handle_sgr(term_t *term) {
 			break;
 		case 48:
 			if (term->params_count < i + 3) break;
-			handle_long_color(&term->params[i+1], &term->bg_color);
-			i += 2;
+			i += handle_long_color(&term->params[i+1], &term->bg_color);
 			break;
 		case 49:
 			term->bg_color.type = TERM_COLOR_DEFAULT;
@@ -174,6 +220,12 @@ void term_csi_dispatch(term_t *term, wint_t final)
 	case 'f':
 	case 'I':
 		handle_cursor_move(term, final);
+		break;
+	case 'J':
+		handle_erase_screen(term, GET_PARAM(0, 0));
+		break;
+	case 'K':
+		handle_erase_line(term, GET_PARAM(0, 0));
 		break;
 	case 'm':
 		handle_sgr(term);

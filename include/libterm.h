@@ -27,10 +27,18 @@ typedef struct cell {
 	int attr;
 } cell_t;
 
+typedef struct term_rect {
+	int x;
+	int y;
+	int width;
+	int height;
+} term_rect_t;
+
 typedef struct term_ops {
-	int (*draw_cell)(struct term *, struct cell *cell, int x, int y);
-	int (*draw_cursor)(struct term *, int x, int y);
-	int (*clear)(struct term *, int x, int y, int width, int height);
+	void (*draw_cell)(struct term *, struct cell *cell, int x, int y);
+	void (*draw_cursor)(struct term *, int x, int y);
+	void (*clear)(struct term *, term_rect_t *rect);
+	void (*move)(struct term *, term_rect_t *dest, term_rect_t *src);
 } term_ops_t;
 
 typedef struct term {

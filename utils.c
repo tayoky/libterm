@@ -4,8 +4,30 @@
 // a bunch of utils functions
 
 void term_scroll(term_t *term, int amount) {
-	// TODO : do an actual scrolling
+	// TODO : support negative scrolling
+	if (amount <= 0) return;
 	term->wrap_pending = 0;
+	term_rect_t src = {
+		.x = 0,
+		.y = amount,
+		.width  = term->width,
+		.height = term->height - amount,
+	};
+	term_rect_t dest = {
+		.x = 0,
+		.y = 0,
+		.width  = term->width,
+		.height = term->height - amount,
+	};
+	term_move(term, &dest, &src);
+
+	term_rect_t clear_rect = {
+		.x = 0,
+		.y = term->height - amount,
+		.width  = term->width,
+		.height = amount,
+	};
+	term_clear(term, &clear_rect);
 }
 
 void term_set_cursor(term_t *term, int x, int y) {
