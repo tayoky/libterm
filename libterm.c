@@ -141,7 +141,12 @@ void term_output(term_t *term, const char *buf, size_t size) {
 }
 
 int term_init(term_t *term) {
-	memset(term, 0, sizeof(term_t));
+	term->state = TERM_STATE_GROUND;
+	term->cursor_x = 0;
+	term->cursor_y = 0;
+	term->attr = 0;
+	term->fg_color.type = TERM_COLOR_DEFAULT;
+	term->bg_color.type = TERM_COLOR_DEFAULT;
 	term->screen = malloc(sizeof(cell_t) * term->width * term->height);
 	return 0;
 }
