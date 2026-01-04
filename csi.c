@@ -1,5 +1,6 @@
 #include <libterm.h>
 #include <term-utils.h>
+#include <string.h>
 
 // csi codes handling
 

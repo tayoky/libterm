@@ -1,5 +1,6 @@
 #include <libterm.h>
 #include <term-utils.h>
+#include <string.h>
 
 void term_draw_cell(term_t *term, cell_t *cell, int x, int y) {
 	if (term->ops && term->ops->draw_cell) {

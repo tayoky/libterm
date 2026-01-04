@@ -18,6 +18,4 @@ void term_draw_cursor(term_t *term, int x, int y);
 void term_csi_dispatch(term_t *term, wint_t final);
 void term_esc_dispatch(term_t *term, wint_t final);
 
-#define CELL_AT(term, x, y) (&term->screen[(y) * term->width + (x)])
-
 #endif

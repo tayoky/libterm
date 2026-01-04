@@ -72,6 +72,8 @@ typedef struct term {
 #define TERM_ATTR_BLINK      (1 << 5)
 #define TERM_ATTR_INVERSE    (1 << 7)
 
+#define CELL_AT(term, x, y) (&term->screen[(y) * term->width + (x)])
+
 void term_output_char(term_t *term, wint_t c);
 void term_output(term_t *term, const char *buf, size_t size);
 int term_init(term_t *term);
