@@ -11,6 +11,8 @@ void term_carriage_return(term_t *term);
 void term_newline(term_t *term);
 void term_tab(term_t *term);
 
+void term_reset(term_t *term);
+
 void term_clear(term_t *term, term_rect_t *rect);
 void term_move(term_t *term, term_rect_t *dest, term_rect_t *src);
 void term_draw_cell(term_t *term, cell_t *cell, int x, int y);

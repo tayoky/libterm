@@ -34,6 +34,15 @@ typedef struct term_rect {
 	int height;
 } term_rect_t;
 
+typedef struct term_cursor {
+	int x;
+	int y;
+	int wrap_pending;
+	int attr;
+	term_color_t fg_color;
+	term_color_t bg_color;
+} term_cursor_t;
+
 typedef struct term_ops {
 	void (*draw_cell)(struct term *, struct cell *cell, int x, int y);
 	void (*draw_cursor)(struct term *, int x, int y);
@@ -51,12 +60,9 @@ typedef struct term {
 	char intermediate;
 	int width;
 	int height;
-	int cursor_x;
-	int cursor_y;
-	int wrap_pending;
-	int attr;
-	term_color_t fg_color;
-	term_color_t bg_color;
+	term_cursor_t cursor;
+	term_cursor_t saved_cursor;
+	term_cursor_t dumb_saved_cursor;
 } term_t;
 
 #define TERM_STATE_GROUND           0

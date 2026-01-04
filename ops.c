@@ -42,9 +42,9 @@ void term_clear(term_t *term, term_rect_t *rect) {
 		cell_t *cell = CELL_AT(term, rect->x, rect->y + i);
 		for (int j=0; j<rect->width; j++) {
 			cell->c        = ' ';
-			cell->attr     = term->attr;
-			cell->fg_color = term->fg_color;
-			cell->bg_color = term->bg_color;
+			cell->attr     = term->cursor.attr;
+			cell->fg_color = term->cursor.fg_color;
+			cell->bg_color = term->cursor.bg_color;
 			cell++;
 		}
 	}

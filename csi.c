@@ -34,7 +34,7 @@ static void handle_cursor_move(term_t *term, wint_t final) {
 		term_move_cursor(term, 0, -n);
 		break;
 	case 'G':
-		term_set_cursor(term, n - 1, term->cursor_y);
+		term_set_cursor(term, n - 1, term->cursor.y);
 		break;
 	case 'H':
 	case 'f':
@@ -49,17 +49,17 @@ static void handle_cursor_move(term_t *term, wint_t final) {
 
 static void handle_erase_line(term_t *term, int param) {
 	term_rect_t clear_rect = {
-		.y = term->cursor_y,
+		.y = term->cursor.y,
 		.height = 1,
 	};
 	switch (param) {
 	case 0: // from cursor to end of line
-		clear_rect.x     = term->cursor_x;
-		clear_rect.width = term->width - term->cursor_x;
+		clear_rect.x     = term->cursor.x;
+		clear_rect.width = term->width - term->cursor.x;
 		break;
 	case 1: // start of line to cursor
 		clear_rect.x     = 0;
-		clear_rect.width = term->cursor_x + 1;
+		clear_rect.width = term->cursor.x + 1;
 		break;
 	case 2: // whole line
 		clear_rect.x     = 0;
@@ -76,13 +76,13 @@ static void handle_erase_screen(term_t *term, int param) {
 	};
 	switch (param) {
 	case 0:
-		clear_rect.y      = term->cursor_y + 1;
-		clear_rect.height = term->height - term->cursor_y - 1;
+		clear_rect.y      = term->cursor.y + 1;
+		clear_rect.height = term->height - term->cursor.y - 1;
 		handle_erase_line(term, 0);
 		break;
 	case 1:
 		clear_rect.y      = 0;
-		clear_rect.height = term->cursor_y;
+		clear_rect.height = term->cursor.y;
 		handle_erase_line(term, 1);
 		break;
 	case 2:
@@ -114,33 +114,33 @@ static void handle_sgr(term_t *term) {
 		case -1:
 		case 0:
 			// reset
-			term->attr = 0;
-			memset(&term->fg_color, 0, sizeof(term_color_t));
-			memset(&term->bg_color, 0, sizeof(term_color_t));
+			term->cursor.attr = 0;
+			memset(&term->cursor.fg_color, 0, sizeof(term_color_t));
+			memset(&term->cursor.bg_color, 0, sizeof(term_color_t));
 			break;
 		case 1:
-			term->attr |= TERM_ATTR_BOLD;
+			term->cursor.attr |= TERM_ATTR_BOLD;
 			break;
 		case 4:
-			term->attr |= TERM_ATTR_UNDERLINE;
+			term->cursor.attr |= TERM_ATTR_UNDERLINE;
 			break;
 		case 5:
-			term->attr |= TERM_ATTR_BLINK;
+			term->cursor.attr |= TERM_ATTR_BLINK;
 			break;
 		case 7:
-			term->attr |= TERM_ATTR_INVERSE;
+			term->cursor.attr |= TERM_ATTR_INVERSE;
 			break;
 		case 22:
-			term->attr &= ~TERM_ATTR_BOLD;
+			term->cursor.attr &= ~TERM_ATTR_BOLD;
 			break;
 		case 24:
-			term->attr &= ~TERM_ATTR_UNDERLINE;
+			term->cursor.attr &= ~TERM_ATTR_UNDERLINE;
 			break;
 		case 25:
-			term->attr &= ~TERM_ATTR_BLINK;
+			term->cursor.attr &= ~TERM_ATTR_BLINK;
 			break;
 		case 27:
-			term->attr &= ~TERM_ATTR_INVERSE;
+			term->cursor.attr &= ~TERM_ATTR_INVERSE;
 			break;
 		case 30:
 		case 31:
@@ -150,15 +150,15 @@ static void handle_sgr(term_t *term) {
 		case 35:
 		case 36:
 		case 37:
-			term->fg_color.type  = TERM_COLOR_ANSI;
-			term->fg_color.index = term->params[i] - 30;
+			term->cursor.fg_color.type  = TERM_COLOR_ANSI;
+			term->cursor.fg_color.index = term->params[i] - 30;
 			break;
 		case 38:
 			if (term->params_count < i + 3) break;
-			i += handle_long_color(&term->params[i+1], &term->fg_color);
+			i += handle_long_color(&term->params[i+1], &term->cursor.fg_color);
 			break;
 		case 39:
-			term->fg_color.type = TERM_COLOR_DEFAULT;
+			term->cursor.fg_color.type = TERM_COLOR_DEFAULT;
 			break;
 		case 40:
 		case 41:
@@ -168,15 +168,15 @@ static void handle_sgr(term_t *term) {
 		case 45:
 		case 46:
 		case 47:
-			term->bg_color.type  = TERM_COLOR_ANSI;
-			term->bg_color.index = term->params[i] - 40;
+			term->cursor.bg_color.type  = TERM_COLOR_ANSI;
+			term->cursor.bg_color.index = term->params[i] - 40;
 			break;
 		case 48:
 			if (term->params_count < i + 3) break;
-			i += handle_long_color(&term->params[i+1], &term->bg_color);
+			i += handle_long_color(&term->params[i+1], &term->cursor.bg_color);
 			break;
 		case 49:
-			term->bg_color.type = TERM_COLOR_DEFAULT;
+			term->cursor.bg_color.type = TERM_COLOR_DEFAULT;
 			break;
 		case 90:
 		case 91:
@@ -186,8 +186,8 @@ static void handle_sgr(term_t *term) {
 		case 95:
 		case 96:
 		case 97:
-			term->fg_color.type  = TERM_COLOR_ANSI;
-			term->fg_color.index = term->params[i] - 90 + 8;
+			term->cursor.fg_color.type  = TERM_COLOR_ANSI;
+			term->cursor.fg_color.index = term->params[i] - 90 + 8;
 			break;
 		case 100:
 		case 101:
@@ -197,8 +197,8 @@ static void handle_sgr(term_t *term) {
 		case 105:
 		case 106:
 		case 107:
-			term->bg_color.type  = TERM_COLOR_ANSI;
-			term->bg_color.index = term->params[i] - 100 + 8;
+			term->cursor.bg_color.type  = TERM_COLOR_ANSI;
+			term->cursor.bg_color.index = term->params[i] - 100 + 8;
 			break;
 		}
 	}
@@ -232,6 +232,12 @@ void term_csi_dispatch(term_t *term, wint_t final)
 		break;
 	case 'm':
 		handle_sgr(term);
+		break;
+	case 's':
+		term->dumb_saved_cursor = term->cursor;
+		break;
+	case 'u':
+		term_set_cursor(term, term->dumb_saved_cursor.x, term->dumb_saved_cursor.y);
 		break;
 	}
 }

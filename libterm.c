@@ -64,11 +64,11 @@ static void handle_csi_entry(term_t *term, wint_t c) {
 static void handle_c0(term_t *term, wint_t c) {
 	switch (c) {
 	case '\b': // backspace
-		if (term->wrap_pending) {
-			term->wrap_pending = 0;
+		if (term->cursor.wrap_pending) {
+			term->cursor.wrap_pending = 0;
 			break;
 		}
-		if (term->cursor_x > 0) term_move_cursor(term, -1, 0);
+		if (term->cursor.x > 0) term_move_cursor(term, -1, 0);
 		break;
 	case '\r':
 		term_carriage_return(term);
@@ -99,17 +99,17 @@ void term_output_char(term_t *term, wint_t c) {
 
 	switch (term->state) {
 	case TERM_STATE_GROUND:
-		if (term->wrap_pending) {
+		if (term->cursor.wrap_pending) {
 			term_newline(term);
 		}
-		cell_t *cell = CELL_AT(term, term->cursor_x, term->cursor_y);
+		cell_t *cell = CELL_AT(term, term->cursor.x, term->cursor.y);
 		cell->c        = c;
-		cell->attr     = term->attr;
-		cell->fg_color = term->fg_color;
-		cell->bg_color = term->bg_color;
-		term_draw_cell(term, cell, term->cursor_x, term->cursor_y);
-		if (term->cursor_x >= term->width - 1) {
-			term->wrap_pending = 1;
+		cell->attr     = term->cursor.attr;
+		cell->fg_color = term->cursor.fg_color;
+		cell->bg_color = term->cursor.bg_color;
+		term_draw_cell(term, cell, term->cursor.x, term->cursor.y);
+		if (term->cursor.x >= term->width - 1) {
+			term->cursor.wrap_pending = 1;
 		} else {
 			term_move_cursor(term, 1, 0);
 		}
@@ -141,13 +141,8 @@ void term_output(term_t *term, const char *buf, size_t size) {
 }
 
 int term_init(term_t *term) {
-	term->state = TERM_STATE_GROUND;
-	term->cursor_x = 0;
-	term->cursor_y = 0;
-	term->attr = 0;
-	term->fg_color.type = TERM_COLOR_DEFAULT;
-	term->bg_color.type = TERM_COLOR_DEFAULT;
 	term->screen = malloc(sizeof(cell_t) * term->width * term->height);
+	term_reset(term);
 	return 0;
 }
 
