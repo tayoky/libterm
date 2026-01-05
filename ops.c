@@ -27,9 +27,10 @@ void term_move(term_t *term, term_rect_t *dest, term_rect_t *src) {
 	if (term->ops && term->ops->move) {
 		int end_y = dest->y + dest->height;
 		int src_y = src->y;
+		int off_x = dest->x - src->x;
 		for (int dest_y=dest->y; dest_y<end_y; dest_y++, src_y++) {
 			// TODO : maybee clip the row
-			term_invalidate_row(term, dest_y, term->dirty_rows[src_y].start_x, term->dirty_rows[src_y].end_x);
+			term_invalidate_row(term, dest_y, term->dirty_rows[src_y].start_x + off_x, term->dirty_rows[src_y].end_x + off_x);
 		}
 		term->ops->move(term, dest, src);
 	} else {
