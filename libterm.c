@@ -156,8 +156,6 @@ void term_render(term_t *term) {
 	for (int y=0; y<term->height; y++) {
 		dirty_row_t *row = &term->dirty_rows[y];
 		if (row->end_x < row->start_x) continue;
-		row->end_x = -1;
-		row->start_x = INT_MAX;
 		cell_t *cell = CELL_AT(term, row->start_x, y);
 		for (int x=row->start_x; x<row->end_x; x++) {
 			term_draw_cell(term, cell, x, y);
@@ -166,6 +164,8 @@ void term_render(term_t *term) {
 			}
 			cell++;
 		}
+		row->end_x = -1;
+		row->start_x = INT_MAX;
 	}
 }
 

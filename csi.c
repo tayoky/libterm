@@ -4,7 +4,7 @@
 
 // csi codes handling
 
-#define GET_PARAM(index, val) term->params[index] <= 0 ? val : term->params[index]
+#define GET_PARAM(index, val) (term->params_count <= (index) ? (val) : (term->params[index] <= 0 ? (val) : term->params[index]))
 
 static void handle_dec(term_t *term, wint_t final) {
 	int mode = 0;
@@ -68,7 +68,7 @@ static void handle_cursor_move(term_t *term, wint_t final) {
 		break;
 	case 'H':
 	case 'f':
-		term_set_cursor(term, GET_PARAM(0, 1) - 1, GET_PARAM(1, 1) - 1);
+		term_set_cursor(term, GET_PARAM(1, 1) - 1, GET_PARAM(0, 1) - 1);
 		break;
 	case 'I':
 		term_move_cursor(term, (n - 1) * 8, 0);
