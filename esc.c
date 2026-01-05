@@ -4,6 +4,7 @@
 // esc + char codes handling
 
 void term_esc_dispatch(term_t *term, wint_t final) {
+	if (term->intermediate) return;
 	switch (final) {
 	case 'E': // NEL : next line
 		term_newline(term);

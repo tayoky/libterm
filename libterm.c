@@ -7,6 +7,11 @@
 // really simple terminal manager
 
 static void handle_esc(term_t *term, wint_t c) {
+	if (c >= ' ' && c <= '/') {
+		term->intermediate = c;
+		term->state = TERM_STATE_ESCAPE_INTERMEDIATE;
+		return;
+	}
 	switch (c) {
 	case '[':
 		term->state = TERM_STATE_CSI_ENTRY;
@@ -15,9 +20,19 @@ static void handle_esc(term_t *term, wint_t c) {
 		term->params[0] = -1;
 		break;
 	default:
+		term->intermediate = 0;
 		term_esc_dispatch(term, c);
 		term->state = TERM_STATE_GROUND;
 		break;
+	}
+}
+
+static void handle_esc_intermediate(term_t *term, wint_t c) {
+	if (c >= ' ' && c <= '/') {
+		term->intermediate = c;
+	} else {
+		term_esc_dispatch(term, c);
+		term->state = TERM_STATE_GROUND;
 	}
 }
 
@@ -121,6 +136,9 @@ static void output_char(term_t *term, wint_t c) {
 		break;
 	case TERM_STATE_ESCAPE:
 		handle_esc(term, c);
+		break;
+	case TERM_STATE_ESCAPE_INTERMEDIATE:
+		handle_esc_intermediate(term, c);
 		break;
 	case TERM_STATE_CSI_ENTRY:
 		handle_csi_entry(term, c);
