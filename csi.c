@@ -40,6 +40,30 @@ static void handle_dec(term_t *term, wint_t final) {
 	}
 }
 
+static void handle_insert_char(term_t *term, int count) {
+	// cap the count
+	if (count > term->width - term->cursor.x) count = term->width - term->cursor.x;
+	
+	term_rect_t src = {
+		.x = term->cursor.x,
+		.y = term->cursor.y,
+		.width = term->width - term->cursor.x - count,
+		.height = 1,
+	};
+
+	term_rect_t dest = {
+		.x = term->cursor.x + count,
+		.y = term->cursor.y,
+		.width = term->width - term->cursor.x - count,
+		.height = 1,
+	};
+
+	term_move(term, &dest, &src);
+
+	src.width = count,
+	term_clear(term, &src);
+}
+
 static void handle_cursor_move(term_t *term, wint_t final) {
 	int n = GET_PARAM(0, 1);
 	switch (final) {
@@ -242,6 +266,9 @@ void term_csi_dispatch(term_t *term, wint_t final)
 	}
 
 	switch (final) {
+	case '@':
+		handle_insert_char(term, GET_PARAM(0, 1));
+		break;
 	case 'A':
 	case 'B':
 	case 'C':
@@ -259,6 +286,12 @@ void term_csi_dispatch(term_t *term, wint_t final)
 		break;
 	case 'K':
 		handle_erase_line(term, GET_PARAM(0, 0));
+		break;
+	case 'S':
+		term_scroll(term, GET_PARAM(0, 1));
+		break;
+	case 'T':
+		term_scroll(term, -GET_PARAM(0, 1));
 		break;
 	case 'm':
 		handle_sgr(term);

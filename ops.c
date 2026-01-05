@@ -15,6 +15,7 @@ void term_draw_cursor(term_t *term, int x, int y) {
 }
 
 void term_move(term_t *term, term_rect_t *dest, term_rect_t *src) {
+	if (dest->width <= 0 || dest->height <= 0) return;
 	if (dest->width == term->width) {
 		memmove(CELL_AT(term, dest->x, dest->y), CELL_AT(term, src->x, src->y), dest->width * dest->height * sizeof(cell_t));
 	} else {
