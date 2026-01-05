@@ -1,5 +1,6 @@
 #include <libterm.h>
 #include <term-utils.h>
+#include <limits.h>
 
 // a bunch of utils functions
 

@@ -173,7 +173,7 @@ void term_output(term_t *term, const char *buf, size_t size) {
 void term_render(term_t *term) {
 	for (int y=0; y<term->height; y++) {
 		dirty_row_t *row = &term->dirty_rows[y];
-		if (row->end_x < row->start_x) continue;
+		if (row->end_x <= row->start_x) continue;
 		cell_t *cell = CELL_AT(term, row->start_x, y);
 		for (int x=row->start_x; x<row->end_x; x++) {
 			term_draw_cell(term, cell, x, y);
@@ -190,6 +190,10 @@ void term_render(term_t *term) {
 int term_init(term_t *term) {
 	term->screen = malloc(sizeof(cell_t) * term->width * term->height);
 	term->dirty_rows = malloc(sizeof(dirty_row_t) * term->height);
+	for (int i=0; i<term->height; i++) {
+		term->dirty_rows[i].end_x = -1;
+		term->dirty_rows[i].start_x = INT_MAX;
+	}
 	term_reset(term);
 	return 0;
 }
