@@ -24,15 +24,15 @@ void term_move(term_t *term, term_rect_t *dest, term_rect_t *src) {
 		}
 	}
 	if (term->ops && term->ops->move) {
+		int end_y = dest->y + dest->height;
+		int src_y = src->y;
+		for (int dest_y=dest->y; dest_y<end_y; dest_y++, src_y++) {
+			// TODO : maybee clip the row
+			term_invalidate_row(term, dest_y, term->dirty_rows[src_y].start_x, term->dirty_rows[src_y].end_x);
+		}
 		term->ops->move(term, dest, src);
 	} else {
-		for (int i=0; i<dest->height; i++) {
-			cell_t *cell = CELL_AT(term, dest->x, dest->y + i);
-			for (int j=0; j<dest->width; j++) {
-				term_draw_cell(term, cell, dest->x + j, dest->y + i);
-				cell++;
-			}
-		}
+		term_invalidate_rect(term, dest);
 	}
 }
 
@@ -50,12 +50,8 @@ void term_clear(term_t *term, term_rect_t *rect) {
 	}
 	if (term->ops && term->ops->clear) {
 		term->ops->clear(term, rect);
+		term_validate_rect(term, rect);
 	} else {
-		cell_t *cell = CELL_AT(term, rect->x, rect->y);
-		for (int i=0; i<rect->width; i++) {
-			for (int j=0; j<rect->height; j++) {
-				term_draw_cell(term, cell, rect->x + i, rect->y + j);
-			}
-		}
+		term_invalidate_rect(term, rect);
 	}
 }

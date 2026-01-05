@@ -32,7 +32,7 @@ void term_scroll(term_t *term, int amount) {
 
 void term_set_cursor(term_t *term, int x, int y) {
 	// redraw the old cell to hide the old cursor
-	term_draw_cell(term, CELL_AT(term, term->cursor.x, term->cursor.y), term->cursor.x, term->cursor.y);
+	term_invalidate_cell(term, term->cursor.x, term->cursor.y);
 
 	term->cursor.wrap_pending = 0;
 	term->cursor.x = x;
@@ -41,7 +41,7 @@ void term_set_cursor(term_t *term, int x, int y) {
 	
 	// now redraw the cursor
 	if (term->dec_mode & TERM_DEC_CURSOR) {
-		term_draw_cursor(term, term->cursor.x, term->cursor.y);
+		term_invalidate_cell(term, term->cursor.x, term->cursor.y);
 	}
 }
 
@@ -73,6 +73,43 @@ void term_carriage_return(term_t *term) {
 
 void term_tab(term_t *term) {
 	term_move_cursor(term, 8 - (term->cursor.x % 8), 0);
+}
+
+void term_invalidate_row(term_t *term, int y, int start_x, int end_x) {
+	if (term->dirty_rows[y].start_x > start_x) term->dirty_rows[y].start_x = start_x;
+	if (term->dirty_rows[y].end_x   < end_x)   term->dirty_rows[y].end_x = end_x;
+}
+
+void term_invalidate_cell(term_t *term, int x, int y) {
+	term_invalidate_row(term, y, x, x + 1);
+}
+
+void term_invalidate_rect(term_t *term, term_rect_t *rect) {
+	int end_x = rect->x + rect->width;
+	int end_y = rect->y + rect->height;
+	for (int y=rect->y; y<end_y; y++) {
+		term_invalidate_row(term, y, rect->x, end_x);
+	}
+}
+
+void term_validate_row(term_t *term, int y, int start_x, int end_x) {
+	dirty_row_t *row = &term->dirty_rows[y];
+	if (row->start_x >= start_x && row->end_x <= end_x) {
+		row->start_x = INT_MAX;
+		row->end_x = -1;
+	} else if (row->start_x >= start_x && end_x > row->start_x) {
+		row->start_x = end_x;
+	} else if (row->end_x <= end_x && start_x < row->end_x) {
+		row->end_x = start_x;
+	}
+}
+
+void term_validate_rect(term_t *term, term_rect_t *rect) {
+	int end_x = rect->x + rect->width;
+	int end_y = rect->y + rect->height;
+	for (int y=rect->y; y<end_y; y++) {
+		term_validate_row(term, y, rect->x, end_x);
+	}
 }
 
 void term_reset(term_t *term) {

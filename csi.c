@@ -35,7 +35,7 @@ static void handle_dec(term_t *term, wint_t final) {
 	switch (mode) {
 	case TERM_DEC_CURSOR:
 		// force cursor redraw
-		term_move_cursor(term, 0, 0);
+		term_invalidate_cell(term, term->cursor.x, term->cursor.y);
 		break;
 	}
 }

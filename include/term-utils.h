@@ -13,6 +13,12 @@ void term_tab(term_t *term);
 
 void term_reset(term_t *term);
 
+void term_invalidate_row(term_t *term, int y, int start_x, int end_x);
+void term_invalidate_cell(term_t *term, int x, int y);
+void term_invalidate_rect(term_t *term, term_rect_t *rect);
+void term_validate_row(term_t *term, int y, int start_x, int end_x);
+void term_validate_rect(term_t *term, term_rect_t *rect);
+
 void term_clear(term_t *term, term_rect_t *rect);
 void term_move(term_t *term, term_rect_t *dest, term_rect_t *src);
 void term_draw_cell(term_t *term, cell_t *cell, int x, int y);

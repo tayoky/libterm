@@ -50,10 +50,16 @@ typedef struct term_ops {
 	void (*move)(struct term *, term_rect_t *dest, term_rect_t *src);
 } term_ops_t;
 
+typedef struct dirty_row {
+	int start_x;
+	int end_x;
+} dirty_row_t;
+
 typedef struct term {
 	void *data;
 	term_ops_t *ops;
 	cell_t *screen;
+	dirty_row_t *dirty_rows;
 	int params[16];
 	int params_count;
 	int state;
@@ -87,6 +93,7 @@ typedef struct term {
 
 void term_output_char(term_t *term, wint_t c);
 void term_output(term_t *term, const char *buf, size_t size);
+void term_render(term_t *term);
 int term_init(term_t *term);
 void term_cleanup(term_t *term);
 

@@ -2,6 +2,7 @@
 #include <term-utils.h>
 #include <stdlib.h>
 #include <string.h>
+#include <limits.h>
 
 // really simple terminal manager
 
@@ -91,7 +92,24 @@ static void handle_c0(term_t *term, wint_t c) {
 	}
 }
 
-void term_output_char(term_t *term, wint_t c) {
+void term_print(term_t *term, wint_t c) {
+	if (term->cursor.wrap_pending && (term->dec_mode & TERM_DEC_AUTOWRAP)) {
+		term_newline(term);
+	}
+	cell_t *cell = CELL_AT(term, term->cursor.x, term->cursor.y);
+	cell->c        = c;
+	cell->attr     = term->cursor.attr;
+	cell->fg_color = term->cursor.fg_color;
+	cell->bg_color = term->cursor.bg_color;
+	term_invalidate_cell(term, term->cursor.x, term->cursor.y);
+	if (term->cursor.x >= term->width - 1) {
+		term->cursor.wrap_pending = 1;
+	} else {
+		term_move_cursor(term, 1, 0);
+	}
+}
+
+static void output_char(term_t *term, wint_t c) {
 	if ((c >= 0x00 && c <= 0x1f) || c == 0x7f) {
 		handle_c0(term, c);
 		return;
@@ -99,20 +117,7 @@ void term_output_char(term_t *term, wint_t c) {
 
 	switch (term->state) {
 	case TERM_STATE_GROUND:
-		if (term->cursor.wrap_pending && (term->dec_mode & TERM_DEC_AUTOWRAP)) {
-			term_newline(term);
-		}
-		cell_t *cell = CELL_AT(term, term->cursor.x, term->cursor.y);
-		cell->c        = c;
-		cell->attr     = term->cursor.attr;
-		cell->fg_color = term->cursor.fg_color;
-		cell->bg_color = term->cursor.bg_color;
-		term_draw_cell(term, cell, term->cursor.x, term->cursor.y);
-		if (term->cursor.x >= term->width - 1) {
-			term->cursor.wrap_pending = 1;
-		} else {
-			term_move_cursor(term, 1, 0);
-		}
+		term_print(term, c);
 		break;
 	case TERM_STATE_ESCAPE:
 		handle_esc(term, c);
@@ -131,17 +136,42 @@ void term_output_char(term_t *term, wint_t c) {
 	}
 }
 
+void term_output_char(term_t *term, wint_t c) {
+	output_char(term, c);
+	term_render(term);
+}
+
 void term_output(term_t *term, const char *buf, size_t size) {
 	// TODO : utf8 support
 	while (size > 0) {
-		term_output_char(term, *buf);
+		output_char(term, *buf);
 		buf++;
 		size--;
+	}
+	term_render(term);
+}
+
+
+void term_render(term_t *term) {
+	for (int y=0; y<term->height; y++) {
+		dirty_row_t *row = &term->dirty_rows[y];
+		if (row->end_x < row->start_x) continue;
+		row->end_x = -1;
+		row->start_x = INT_MAX;
+		cell_t *cell = CELL_AT(term, row->start_x, y);
+		for (int x=row->start_x; x<row->end_x; x++) {
+			term_draw_cell(term, cell, x, y);
+			if (term->cursor.x == x && term->cursor.y == y && (term->dec_mode & TERM_DEC_CURSOR)) {
+				term_draw_cursor(term, x, y);
+			}
+			cell++;
+		}
 	}
 }
 
 int term_init(term_t *term) {
 	term->screen = malloc(sizeof(cell_t) * term->width * term->height);
+	term->dirty_rows = malloc(sizeof(dirty_row_t) * term->height);
 	term_reset(term);
 	return 0;
 }
