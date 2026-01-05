@@ -7,6 +7,10 @@
 void term_scroll(term_t *term, int amount) {
 	// TODO : support negative scrolling
 	if (amount <= 0) return;
+	term_render(term);
+	if (term->cursor.y >= amount) {
+		term_invalidate_cell(term, term->cursor.x, term->cursor.y - amount);
+	}
 	term->cursor.wrap_pending = 0;
 	term_rect_t src = {
 		.x = 0,

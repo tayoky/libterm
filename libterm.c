@@ -169,7 +169,6 @@ void term_output(term_t *term, const char *buf, size_t size) {
 	term_render(term);
 }
 
-
 void term_render(term_t *term) {
 	for (int y=0; y<term->height; y++) {
 		dirty_row_t *row = &term->dirty_rows[y];
