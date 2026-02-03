@@ -159,12 +159,83 @@ void term_output_char(term_t *term, wint_t c) {
 	term_render(term);
 }
 
+static int utf8_read(term_t *term, const unsigned char **buf, size_t *size) {
+	if (term->utf8_offset < 1) {
+		if (*size < 1) return -1;
+		term->utf8_buf[0] = *((*buf)++);
+		(*size)--;
+		term->utf8_offset=1;
+	}
+	int len;
+	if (term->utf8_buf[0] <= 0x7f) {
+		len = 1;
+	} else if ((term->utf8_buf[0] & 0xe0) == 0xc0) {
+		len = 2;
+	} else if ((term->utf8_buf[0] & 0xf0) == 0xe0) {
+		len = 3;
+	} else if ((term->utf8_buf[0] & 0xf8) == 0xf0) {
+		len = 4;
+	} else {
+		goto invalid;
+	}
+
+	while (term->utf8_offset < len) {
+		if (*size < 1) return -1;
+		term->utf8_buf[term->utf8_offset] = *((*buf)++);
+		(*size)--;
+		term->utf8_offset++;
+	}
+
+	int c = 0;
+	switch (len) {
+	case 1:
+		c = term->utf8_buf[0];
+		break;
+	case 2:
+		c = term->utf8_buf[0] & 0x1f;
+		break;
+	case 3:
+		c = term->utf8_buf[0] & 0x0f;
+		break;
+	case 4:
+		c = term->utf8_buf[0] & 0x07;
+		break;
+	}
+
+	for (int i=1; i<len; i++) {
+		if ((term->utf8_buf[i] & 0xc0) != 0x80) {
+			goto invalid;
+		}
+		c <<= 6;
+		c |= term->utf8_buf[i] & 0x3f;
+	}
+
+	// bound checks
+	switch (len) {
+	case 2:
+		if (c <= 0x7f) goto invalid;
+		break;
+	case 3:
+		if (c <= 0x7ff) goto invalid;
+		break;
+	case 4:
+		if (c <= 0xffff)  goto invalid;
+		if (c > 0x10ffff) goto invalid;
+		break;
+	}
+
+	term->utf8_offset = 0;
+	return c;
+invalid:
+	term->utf8_offset = 0;
+	return '?';
+}
+
 void term_output(term_t *term, const char *buf, size_t size) {
-	// TODO : utf8 support
-	while (size > 0) {
-		output_char(term, *buf);
-		buf++;
-		size--;
+	int c;
+	while ((c = utf8_read(term, (const unsigned char**) &buf, &size)) >= 0) {
+		putchar(c);
+		output_char(term, c);
 	}
 	term_render(term);
 }
