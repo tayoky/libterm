@@ -70,7 +70,7 @@ typedef struct term {
 	term_cursor_t saved_cursor;
 	term_cursor_t dumb_saved_cursor;
 	uint32_t dec_mode;
-	char utf8_buf[4];
+	unsigned char utf8_buf[4];
 	int utf8_offset;
 } term_t;
 

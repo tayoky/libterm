@@ -234,7 +234,6 @@ invalid:
 void term_output(term_t *term, const char *buf, size_t size) {
 	int c;
 	while ((c = utf8_read(term, (const unsigned char**) &buf, &size)) >= 0) {
-		putchar(c);
 		output_char(term, c);
 	}
 	term_render(term);
