@@ -252,6 +252,18 @@ void term_render(term_t *term) {
 	}
 }
 
+void term_force_render(term_t *term) {
+	for (int y=0; y<term->height; y++) {
+		dirty_row_t *row = &term->dirty_rows[y];
+		row->end_x = -1;
+		row->start_x = INT_MAX;
+		term_draw_line(term, y, 0, term->width);
+		if (term->cursor.y == y && (term->dec_mode & TERM_DEC_CURSOR)) {
+			term_draw_cursor(term, term->cursor.x, y);
+		}
+	}
+}
+
 int term_resize(term_t *term, int width, int height) {
 	cell_t *new_screen = malloc(sizeof(cell_t) * width * height);
 

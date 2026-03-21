@@ -43,18 +43,19 @@ static void handle_dec(term_t *term, wint_t final) {
 static void handle_insert_char(term_t *term, int count) {
 	// cap the count
 	if (count > term->width - term->cursor.x) count = term->width - term->cursor.x;
+	if (count <= 0) return;
 	
 	term_rect_t src = {
 		.x = term->cursor.x,
 		.y = term->cursor.y,
-		.width = term->width - term->cursor.x - count,
+		.width  = term->width - term->cursor.x - count,
 		.height = 1,
 	};
 
 	term_rect_t dest = {
 		.x = term->cursor.x + count,
 		.y = term->cursor.y,
-		.width = term->width - term->cursor.x - count,
+		.width  = term->width - term->cursor.x - count,
 		.height = 1,
 	};
 
@@ -67,24 +68,75 @@ static void handle_insert_char(term_t *term, int count) {
 static void handle_delete_char(term_t *term, int count) {
 	// cap the count
 	if (count > term->width - term->cursor.x) count = term->width - term->cursor.x;
+	if (count <= 0) return;
 	
 	term_rect_t src = {
 		.x = term->cursor.x + count,
 		.y = term->cursor.y,
-		.width = term->width - term->cursor.x - count,
+		.width  = term->width - term->cursor.x - count,
 		.height = 1,
 	};
 
 	term_rect_t dest = {
 		.x = term->cursor.x,
 		.y = term->cursor.y,
-		.width = term->width - term->cursor.x - count,
+		.width  = term->width - term->cursor.x - count,
 		.height = 1,
 	};
 
 	term_move(term, &dest, &src);
 	src.x =  term->width - count;
 	src.width = count,
+	term_clear(term, &src);
+}
+
+static void handle_insert_lines(term_t *term, int count) {
+	// cap the count
+	if (count > term->height - term->cursor.y) count = term->height - term->cursor.y;
+	if (count <= 0) return;
+
+	term_rect_t src = {
+		.x = term->cursor.x,
+		.y = term->cursor.y,
+		.width  = term->width,
+		.height = term->height - term->cursor.y - count,
+	};
+
+	term_rect_t dest = {
+		.x = term->cursor.x,
+		.y = term->cursor.y + count,
+		.width  = term->width,
+		.height = term->height - term->cursor.y - count,
+	};
+
+	term_move(term, &dest, &src);
+
+	src.height = count;
+	term_clear(term, &src);
+}
+
+static void handle_delete_lines(term_t *term, int count) {
+	// cap the count
+	if (count > term->height - term->cursor.y) count = term->height - term->cursor.y;
+	if (count <= 0) return;
+	
+	term_rect_t src = {
+		.x = term->cursor.x,
+		.y = term->cursor.y + count,
+		.width  = term->width,
+		.height = term->height - term->cursor.y - count,
+	};
+
+	term_rect_t dest = {
+		.x = term->cursor.x,
+		.y = term->cursor.y,
+		.width  = term->width,
+		.height = term->height - term->cursor.y - count,
+	};
+
+	term_move(term, &dest, &src);
+	src.y =  term->height - count;
+	src.height = count,
 	term_clear(term, &src);
 }
 
@@ -310,6 +362,12 @@ void term_csi_dispatch(term_t *term, wint_t final)
 		break;
 	case 'K':
 		handle_erase_line(term, GET_PARAM(0, 0));
+		break;
+	case 'L':
+		handle_insert_lines(term, GET_PARAM(0, 1));
+		break;
+	case 'M':
+		handle_delete_lines(term, GET_PARAM(0, 1));
 		break;
 	case 'P':
 		handle_delete_char(term, GET_PARAM(0, 1));
