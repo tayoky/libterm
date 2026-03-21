@@ -243,13 +243,9 @@ void term_render(term_t *term) {
 	for (int y=0; y<term->height; y++) {
 		dirty_row_t *row = &term->dirty_rows[y];
 		if (row->end_x <= row->start_x) continue;
-		cell_t *cell = CELL_AT(term, row->start_x, y);
-		for (int x=row->start_x; x<row->end_x; x++) {
-			term_draw_cell(term, cell, x, y);
-			if (term->cursor.x == x && term->cursor.y == y && (term->dec_mode & TERM_DEC_CURSOR)) {
-				term_draw_cursor(term, x, y);
-			}
-			cell++;
+		term_draw_line(term, y, row->start_x, row->end_x);
+		if (term->cursor.x >= row->start_x && term->cursor.x < row->end_x && term->cursor.y == y && (term->dec_mode & TERM_DEC_CURSOR)) {
+			term_draw_cursor(term, term->cursor.x, y);
 		}
 		row->end_x = -1;
 		row->start_x = INT_MAX;
@@ -314,6 +310,14 @@ reset_row:
 		.height = term->height - copy_height,
 	};
 	term_clear(term, &clear_rect_bottom);
+
+	// keep cursor in bounds
+	if (term->cursor.x >= term->width) {
+		term->cursor.x = term->width - 1;
+	}
+	if (term->cursor.y >= term->height) {
+		term->cursor.y = term->height - 1;
+	}
 
 	return 0;
 }

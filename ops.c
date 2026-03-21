@@ -8,6 +8,18 @@ void term_draw_cell(term_t *term, cell_t *cell, int x, int y) {
 	}
 }
 
+void term_draw_line(term_t *term, int y, int start_x, int end_x) {
+	cell_t *first_cell = CELL_AT(term, start_x, y);
+	if (term->ops && term->ops->draw_line) {
+		term->ops->draw_line(term, first_cell, y, start_x, end_x);
+	} else {
+		for (int x=start_x; x<end_x; x++) {
+			term_draw_cell(term, first_cell, x, y);
+			first_cell++;
+		}
+	}
+}
+
 void term_draw_cursor(term_t *term, int x, int y) {
 	if (term->ops && term->ops->draw_cursor) {
 		term->ops->draw_cursor(term, x, y);

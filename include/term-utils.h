@@ -22,6 +22,7 @@ void term_validate_rect(term_t *term, term_rect_t *rect);
 void term_clear(term_t *term, term_rect_t *rect);
 void term_move(term_t *term, term_rect_t *dest, term_rect_t *src);
 void term_draw_cell(term_t *term, cell_t *cell, int x, int y);
+void term_draw_line(term_t *term, int y, int start_x, int end_x);
 void term_draw_cursor(term_t *term, int x, int y);
 void term_csi_dispatch(term_t *term, wint_t final);
 void term_esc_dispatch(term_t *term, wint_t final);

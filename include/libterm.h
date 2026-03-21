@@ -45,9 +45,11 @@ typedef struct term_cursor {
 
 typedef struct term_ops {
 	void (*draw_cell)(struct term *, struct cell *cell, int x, int y);
+	void (*draw_line)(struct term *, struct cell *first_cell, int y, int start_x, int end_x);
 	void (*draw_cursor)(struct term *, int x, int y);
 	void (*clear)(struct term *, term_rect_t *rect);
 	void (*move)(struct term *, term_rect_t *dest, term_rect_t *src);
+	void *stubs[9];
 } term_ops_t;
 
 typedef struct dirty_row {
