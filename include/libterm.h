@@ -99,5 +99,6 @@ void term_output(term_t *term, const char *buf, size_t size);
 void term_render(term_t *term);
 int term_init(term_t *term);
 void term_cleanup(term_t *term);
+int term_resize(term_t *term, int width, int height);
 
 #endif

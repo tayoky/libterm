@@ -256,6 +256,68 @@ void term_render(term_t *term) {
 	}
 }
 
+int term_resize(term_t *term, int width, int height) {
+	cell_t *new_screen = malloc(sizeof(cell_t) * width * height);
+
+	int copy_width = width;
+	if (copy_width > term->width) copy_width = term->width;
+
+	int copy_height = height;
+	if (copy_height > term->height) copy_height = term->height;
+	
+	for (int y=0; y<copy_height; y++) {
+		cell_t *src = CELL_AT(term, 0, y);
+		cell_t *dest = new_screen + y * width;
+		memcpy(dest, src, copy_width * sizeof(cell_t));
+	}
+
+	dirty_row_t *new_dirty_rows = malloc(sizeof(dirty_row_t) * height);
+	for (int y=0; y<copy_height; y++) {
+		if (term->dirty_rows[y].start_x == INT_MAX) {
+reset_row:
+			new_dirty_rows[y].end_x = -1;
+			new_dirty_rows[y].start_x = INT_MAX;
+			continue;
+		}
+		if (term->dirty_rows[y].start_x >= width) {
+			goto reset_row;
+		}
+		new_dirty_rows[y].start_x = term->dirty_rows[y].start_x;
+		if (term->dirty_rows[y].end_x >= width) {
+			new_dirty_rows[y].end_x = width;
+		}
+	}
+	for (int y=copy_height; y<height; y++) {
+		new_dirty_rows[y].end_x = -1;
+		new_dirty_rows[y].start_x = INT_MAX;
+	}
+
+	free(term->screen);
+	free(term->dirty_rows);
+	term->width  = width;
+	term->height = height;
+	term->screen = new_screen;
+	term->dirty_rows = new_dirty_rows;
+
+	// we can easly clear the rest of the screen using two rectangles
+	term_rect_t clear_rect_right = {
+		.x = copy_width,
+		.y = 0,
+		.width  = term->width - copy_width,
+		.height = term->height,
+	};
+	term_clear(term, &clear_rect_right);
+	term_rect_t clear_rect_bottom = {
+		.x = 0,
+		.y = copy_height,
+		.width  = term->width,
+		.height = term->height - copy_height,
+	};
+	term_clear(term, &clear_rect_bottom);
+
+	return 0;
+}
+
 int term_init(term_t *term) {
 	term->screen = malloc(sizeof(cell_t) * term->width * term->height);
 	term->dirty_rows = malloc(sizeof(dirty_row_t) * term->height);
