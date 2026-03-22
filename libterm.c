@@ -272,26 +272,33 @@ int term_resize(term_t *term, int width, int height) {
 
 	int copy_height = height;
 	if (copy_height > term->height) copy_height = term->height;
+
+	// we want to keep the line where the cursor is on screen
+	// so we might need to scroll
+	int scroll = 0;
+	if (term->cursor.y >= height) {
+		scroll = term->cursor.y - height;
+	}
 	
 	for (int y=0; y<copy_height; y++) {
-		cell_t *src = CELL_AT(term, 0, y);
+		cell_t *src = CELL_AT(term, 0, scroll + y);
 		cell_t *dest = new_screen + y * width;
 		memcpy(dest, src, copy_width * sizeof(cell_t));
 	}
 
 	dirty_row_t *new_dirty_rows = malloc(sizeof(dirty_row_t) * height);
 	for (int y=0; y<copy_height; y++) {
-		if (term->dirty_rows[y].start_x == INT_MAX) {
+		if (term->dirty_rows[scroll+y].start_x == INT_MAX) {
 reset_row:
 			new_dirty_rows[y].end_x = -1;
 			new_dirty_rows[y].start_x = INT_MAX;
 			continue;
 		}
-		if (term->dirty_rows[y].start_x >= width) {
+		if (term->dirty_rows[scroll+y].start_x >= width) {
 			goto reset_row;
 		}
-		new_dirty_rows[y].start_x = term->dirty_rows[y].start_x;
-		if (term->dirty_rows[y].end_x >= width) {
+		new_dirty_rows[y].start_x = term->dirty_rows[scroll+y].start_x;
+		if (term->dirty_rows[scroll+y].end_x >= width) {
 			new_dirty_rows[y].end_x = width;
 		}
 	}
