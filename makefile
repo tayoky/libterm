@@ -20,13 +20,13 @@ libterm.a : $(OBJ)
 	
 install : all
 	@echo '[install headers]'
-	@mkdir -p $(PREFIX)/include
-	@cp include/libterm.h $(PREFIX)/include
+	@mkdir -p "$(DESTDIR)$(PREFIX)/include"
+	@cp include/libterm.h "$(DESTDIR)$(PREFIX)/include"
 	@echo '[install libterm.so]'
-	@mkdir -p $(PREFIX)/lib
-	@cp libterm.so $(PREFIX)/lib
+	@mkdir -p "$(DESTDIR)$(PREFIX)/lib"
+	@cp libterm.so "$(DESTDIR)$(PREFIX)/lib"
 	@echo '[install libterm.a]'
-	@cp libterm.a $(PREFIX)/lib
+	@cp libterm.a "$(DESTDIR)$(PREFIX)/lib"
 
 clean : 
 	rm -f $(OBJ)
