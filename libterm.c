@@ -6,33 +6,67 @@
 
 // really simple terminal manager
 
-static void handle_esc(term_t *term, wint_t c) {
+#define arraylen(array) (sizeof(array)/sizeof(*array))
+
+static void collect_clear(term_t *term) {
+	term->params_count = 0;
+	term->private_marker = 0;
+	term->intermediates_count = 0;
+	term->params[0] = -1;
+}
+
+static void collect_private_marker(term_t *term, wint_t c) {
+	term->private_marker = c;
+}
+
+static void collect_param(term_t *term, wint_t c) {
+	if (c >= '0' && c <= '9') {
+		if (term->params[term->params_count] == -1) {
+			term->params[term->params_count] = c - '0';
+		} else {
+			term->params[term->params_count] *= 10;
+			term->params[term->params_count] += c - '0';
+		}
+	} else if (c == ';') {
+		// FIXME : UNSAFE could overflow
+		term->params_count++;
+		term->params[term->params_count] = -1;
+	}
+}
+
+static void collect_intermediate(term_t *term, wint_t c) {
+	if (term->intermediates_count >= arraylen(term->intermediates)) {
+		// silently discard intermediate chars when the buffer is full
+		// as no command use that much intermediates anyway
+		return;
+	}
+	term->intermediates[term->intermediates_count++] = c;
+}
+
+static void handle_esc_intermediate(term_t *term, wint_t c) {
 	if (c >= ' ' && c <= '/') {
-		term->intermediate = c;
+		collect_intermediate(term, c);
+	} else {
+		term_esc_dispatch(term, c);
+		term->state = TERM_STATE_GROUND;
+	}
+}
+
+static void handle_esc(term_t *term, wint_t c) {
+	collect_clear(term);
+	if (c >= ' ' && c <= '/') {
 		term->state = TERM_STATE_ESCAPE_INTERMEDIATE;
+		handle_esc_intermediate(term, c);
 		return;
 	}
 	switch (c) {
 	case '[':
 		term->state = TERM_STATE_CSI_ENTRY;
-		term->params_count = 0;
-		term->intermediate = 0;
-		term->params[0] = -1;
 		break;
 	default:
-		term->intermediate = 0;
 		term_esc_dispatch(term, c);
 		term->state = TERM_STATE_GROUND;
 		break;
-	}
-}
-
-static void handle_esc_intermediate(term_t *term, wint_t c) {
-	if (c >= ' ' && c <= '/') {
-		term->intermediate = c;
-	} else {
-		term_esc_dispatch(term, c);
-		term->state = TERM_STATE_GROUND;
 	}
 }
 
@@ -44,37 +78,97 @@ static void handle_csi_seq(term_t *term, wint_t c) {
 	term->state = TERM_STATE_GROUND;
 }
 
-static void handle_csi_param(term_t *term, wint_t c) {
-	if ((c >= '<' && c <= '?') || c == ',') {
-		term->state = TERM_STATE_CSI_IGNORE;
-	} else if (c >= '0' && c <= '9') {
-		if (term->params[term->params_count] == -1) {
-			term->params[term->params_count] = c - '0';
-		} else {
-			term->params[term->params_count] *= 10;
-			term->params[term->params_count] += c - '0';
-		}
-	} else if (c == ';') {
-		term->params_count++;
-		term->params[term->params_count] = -1;
-	} else if (c >= '@' && c <= '~') {
-		handle_csi_seq(term, c);
-	}
-	//TODO : support to switch to CSI_INTERMIDATE
-}
-
 static void handle_csi_entry(term_t *term, wint_t c) {
-	if (c == ',') {
+	collect_clear(term);
+	if (c == ':') {
 		term->state = TERM_STATE_CSI_IGNORE;
 	} else if (c >= '<' && c <= '?') {
+		collect_private_marker(term, c);
 		term->state = TERM_STATE_CSI_PARAM;
-		term->intermediate = c;
 	} else if ((c >= '0' && c <= '9') || c == ';') {
+		collect_param(term, c);
 		term->state = TERM_STATE_CSI_PARAM;
-		handle_csi_param(term, c);
+	} else if (c >= ' ' && c <= '/') {
+		collect_intermediate(term, c);
+		term->state = TERM_STATE_CSI_INTERMEDIATE;
 	} else if (c >= '@' && c <= '~') {
 		handle_csi_seq(term, c);
 	}
+}
+
+static void handle_csi_param(term_t *term, wint_t c) {
+	if ((c >= '<' && c <= '?') || c == ':') {
+		term->state = TERM_STATE_CSI_IGNORE;
+	} else if ((c >= '0' && c <= '9') || c == ';') {
+		collect_param(term, c);
+	} else if (c >= ' ' && c <= '/') {
+		collect_intermediate(term, c);
+		term->state = TERM_STATE_CSI_INTERMEDIATE;
+	} else if (c >= '@' && c <= '~') {
+		handle_csi_seq(term, c);
+	}
+}
+
+static void handle_csi_intermediate(term_t *term, wint_t c) {
+	if (c >= '0' && c <= '?') {
+		term->state = TERM_STATE_CSI_IGNORE;
+	} else if (c >= ' ' && c <= '/') {
+		collect_intermediate(term, c);
+	} else if (c >= '@' && c <= '~') {
+		handle_csi_seq(term, c);
+	}
+}
+
+static void handle_csi_ignore(term_t *term, wint_t c) {
+	if (c >= '@' && c <= '~') {
+		term->state = TERM_STATE_GROUND;
+	}
+}
+
+static void handle_dcs_entry(term_t *term, wint_t c) {
+	collect_clear(term);
+	if (c == ':') {
+		term->state = TERM_STATE_DCS_IGNORE;
+	} else if (c >= '<' && c <= '?') {
+		collect_private_marker(term, c);
+		term->state = TERM_STATE_DCS_PARAM;
+	} else if ((c >= '0' && c <= '9') || c == ';') {
+		collect_param(term, c);
+		term->state = TERM_STATE_DCS_PARAM;
+	} else if (c >= ' ' && c <= '/') {
+		collect_intermediate(term, c);
+		term->state = TERM_STATE_DCS_INTERMEDIATE;
+	} else if (c >= '@' && c <= '~') {
+		term->state = TERM_STATE_DCS_PASSTHROUGH;
+	}
+}
+
+static void handle_dcs_param(term_t *term, wint_t c) {
+	if ((c >= '<' && c <= '?') || c == ':') {
+		term->state = TERM_STATE_DCS_IGNORE;
+	} else if ((c >= '0' && c <= '9') || c == ';') {
+		collect_param(term, c);
+	} else if (c >= ' ' && c <= '/') {
+		collect_intermediate(term, c);
+		term->state = TERM_STATE_DCS_INTERMEDIATE;
+	} else if (c >= '@' && c <= '~') {
+		term->state = TERM_STATE_DCS_PASSTHROUGH;
+	}
+}
+
+static void handle_dcs_intermediate(term_t *term, wint_t c) {
+	if (c >= '0' && c <= '?') {
+		term->state = TERM_STATE_DCS_IGNORE;
+	} else if (c >= ' ' && c <= '/') {
+		collect_intermediate(term, c);
+	} else if (c >= '@' && c <= '~') {
+		term->state = TERM_STATE_DCS_PASSTHROUGH;
+	}
+}
+
+static void handle_dcs_ignore(term_t *term, wint_t c) {
+	(void)term;
+	(void)c;
 }
 
 static void handle_c0(term_t *term, wint_t c) {
@@ -104,6 +198,15 @@ static void handle_c0(term_t *term, wint_t c) {
 	case '\033': // escape char
 		term->state = TERM_STATE_ESCAPE;
 		return;
+	case 0x9b:
+		term->state = TERM_STATE_CSI_ENTRY;
+		return;
+	case 0x9c:
+		term->state = TERM_STATE_GROUND;
+		return;
+	case 0x9d:
+		term->state = TERM_STATE_OSC;
+		break;
 	}
 }
 
@@ -125,7 +228,8 @@ void term_print(term_t *term, wint_t c) {
 }
 
 static void output_char(term_t *term, wint_t c) {
-	if ((c >= 0x00 && c <= 0x1f) || c == 0x7f) {
+	if ((c >= 0x00 && c <= 0x1f)|| c == 0x7f
+			|| c == 0x9b || c == 0x9c || c == 0x9d) {
 		handle_c0(term, c);
 		return;
 	}
@@ -146,10 +250,23 @@ static void output_char(term_t *term, wint_t c) {
 	case TERM_STATE_CSI_PARAM:
 		handle_csi_param(term, c);
 		break;
+	case TERM_STATE_CSI_INTERMEDIATE:
+		handle_csi_intermediate(term, c);
+		break;
 	case TERM_STATE_CSI_IGNORE:
-		if (c >= '@' && c <= 0x7e) {
-			term->state = TERM_STATE_GROUND;
-		}
+		handle_csi_ignore(term, c);
+		break;
+	case TERM_STATE_DCS_ENTRY:
+		handle_dcs_entry(term, c);
+		break;
+	case TERM_STATE_DCS_PARAM:
+		handle_dcs_param(term, c);
+		break;
+	case TERM_STATE_DCS_INTERMEDIATE:
+		handle_dcs_intermediate(term, c);
+		break;
+	case TERM_STATE_DCS_IGNORE:
+		handle_dcs_ignore(term, c);
 		break;
 	}
 }

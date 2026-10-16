@@ -336,7 +336,7 @@ static void handle_sgr(term_t *term) {
 
 void term_csi_dispatch(term_t *term, wint_t final) 
 {
-	if (term->intermediate == '?') {
+	if (term->private_marker == '?') {
 		handle_dec(term, final);
 		return;
 	}

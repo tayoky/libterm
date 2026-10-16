@@ -65,7 +65,9 @@ typedef struct term {
 	int params[16];
 	int params_count;
 	int state;
-	char intermediate;
+	char intermediates[16];
+	int intermediates_count;
+	char private_marker;
 	int width;
 	int height;
 	term_cursor_t cursor;
@@ -76,13 +78,19 @@ typedef struct term {
 	int utf8_offset;
 } term_t;
 
-#define TERM_STATE_GROUND              0
-#define TERM_STATE_ESCAPE              1
-#define TERM_STATE_ESCAPE_INTERMEDIATE 2
-#define TERM_STATE_CSI_ENTRY           3
-#define TERM_STATE_CSI_PARAM           4
-#define TERM_STATE_CSI_INTERMEDIATE    5
-#define TERM_STATE_CSI_IGNORE          6
+#define TERM_STATE_GROUND				0
+#define TERM_STATE_ESCAPE               1
+#define TERM_STATE_ESCAPE_INTERMEDIATE  2
+#define TERM_STATE_CSI_ENTRY            3
+#define TERM_STATE_CSI_PARAM            4
+#define TERM_STATE_CSI_INTERMEDIATE     5
+#define TERM_STATE_CSI_IGNORE           6
+#define TERM_STATE_OSC                  7
+#define TERM_STATE_DCS_ENTRY            8
+#define TERM_STATE_DCS_PARAM            9
+#define TERM_STATE_DCS_INTERMEDIATE    10
+#define TERM_STATE_DCS_PASSTHROUGH     11
+#define TERM_STATE_DCS_IGNORE          12
 
 #define TERM_ATTR_BOLD       (1 << 1)
 #define TERM_ATTR_ITALIC     (1 << 3)
